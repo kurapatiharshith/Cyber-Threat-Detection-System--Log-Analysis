@@ -1,0 +1,901 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-header">
+        <h1><i class="fas fa-cog me-2"></i>Settings</h1>
+        <p class="text-muted">Configure your account and application preferences</p>
+    </div>
+
+    <div class="settings-nav-container">
+        <ul class="nav nav-pills nav-fill settings-nav" id="settingsTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-tab-pane" type="button" role="tab" aria-controls="profile-tab-pane" aria-selected="true">
+                    <i class="fas fa-user-circle me-2"></i> Profile
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api-tab-pane" type="button" role="tab" aria-controls="api-tab-pane" aria-selected="false">
+                    <i class="fas fa-key me-2"></i> API Settings
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notifications-tab-pane" type="button" role="tab" aria-controls="notifications-tab-pane" aria-selected="false">
+                    <i class="fas fa-bell me-2"></i> Notifications
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="appearance-tab" data-bs-toggle="tab" data-bs-target="#appearance-tab-pane" type="button" role="tab" aria-controls="appearance-tab-pane" aria-selected="false">
+                    <i class="fas fa-palette me-2"></i> Appearance
+                </button>
+            </li>
+            {% if current_user.is_admin %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="system-tab" data-bs-toggle="tab" data-bs-target="#system-tab-pane" type="button" role="tab" aria-controls="system-tab-pane" aria-selected="false">
+                    <i class="fas fa-cogs me-2"></i> System
+                </button>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <div class="tab-content settings-tab-content" id="settingsTabContent">
+        <!-- Profile Tab Content -->
+        <div class="tab-pane fade show active" id="profile-tab-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">
+            <div class="card form-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-user me-2"></i>User Profile</h3>
+                </div>
+                <div class="card-body">
+                    <form id="userProfileForm" method="POST" action="/settings/user">
+                        <div class="mb-4">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control custom-input" id="username" value="{{ current_user.username }}" disabled>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control custom-input" id="email" name="email" value="{{ current_user.email }}">
+                        </div>
+                        
+                        <div id="userProfileStatus"></div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-custom">
+                                <i class="fas fa-save me-2"></i>Update Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card form-card mt-4">
+                <div class="card-header">
+                    <h3><i class="fas fa-lock me-2"></i>Change Password</h3>
+                </div>
+                <div class="card-body">
+                    <form id="passwordForm" method="POST" action="/settings/password">
+                        <div class="mb-4">
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control custom-input" id="current_password" name="current_password" required>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control custom-input" id="new_password" name="new_password" required>
+                            <div class="password-strength mt-2" id="passwordStrength"></div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="confirm_password" class="form-label">Confirm New Password</label>
+                            <input type="password" class="form-control custom-input" id="confirm_password" required>
+                            <div id="passwordMatchFeedback" class="invalid-feedback">
+                                Passwords do not match
+                            </div>
+                        </div>
+                        
+                        <div id="passwordStatus"></div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" id="changePasswordBtn" class="btn btn-primary btn-custom">
+                                <i class="fas fa-key me-2"></i>Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Settings Tab Content -->
+        <div class="tab-pane fade" id="api-tab-pane" role="tabpanel" aria-labelledby="api-tab" tabindex="0">
+            <div class="card form-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-plug me-2"></i>API Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <form id="apiSettingsForm" method="POST" action="/settings/api">
+                        <div class="mb-4">
+                            <label for="api_key" class="form-label">API Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control custom-input" id="api_key" name="api_key" value="{{ api_key }}">
+                                <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">API key used for log analysis and threat detection.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="api_threshold" class="form-label">Detection Threshold</label>
+                            <div class="range-container">
+                                <input type="range" class="form-range" min="1" max="100" value="75" id="thresholdRange">
+                                <div class="input-group threshold-input-group">
+                                    <input type="number" class="form-control custom-input" id="api_threshold" name="api_threshold" min="1" max="100" value="75">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="form-text">Minimum confidence level for threat detection (higher = fewer false positives).</div>
+                        </div>
+                        
+                        <div id="apiSettingsStatus"></div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-custom">
+                                <i class="fas fa-save me-2"></i>Save API Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Tab Content -->
+        <div class="tab-pane fade" id="notifications-tab-pane" role="tabpanel" aria-labelledby="notifications-tab" tabindex="0">
+            <div class="card form-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bell me-2"></i>Notification Settings</h3>
+                </div>
+                <div class="card-body">
+                    <form id="notificationsForm" method="POST" action="/settings/notifications">
+                        <div class="mb-4">
+                            <label for="discord_webhook" class="form-label">Discord Webhook URL</label>
+                            <input type="text" class="form-control custom-input" id="discord_webhook" name="discord_webhook" value="{{ discord_webhook }}">
+                            <div class="form-text">Send notifications to Discord when important events occur.</div>
+                        </div>
+                        
+                        <div class="notification-options">
+                            <div class="mb-4 notification-switch">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify_on_upload" name="notify_on_upload" checked>
+                                    <label class="form-check-label" for="notify_on_upload">
+                                        <i class="fas fa-upload text-primary me-2"></i>Notify on log upload
+                                    </label>
+                                    <small class="form-text d-block mt-1">Get notified when a new log file is uploaded to the system</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4 notification-switch">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify_on_analysis" name="notify_on_analysis" checked>
+                                    <label class="form-check-label" for="notify_on_analysis">
+                                        <i class="fas fa-search text-info me-2"></i>Notify on analysis completion
+                                    </label>
+                                    <small class="form-text d-block mt-1">Get notified when log analysis is complete</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4 notification-switch">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="notify_on_critical" name="notify_on_critical" checked>
+                                    <label class="form-check-label" for="notify_on_critical">
+                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>Notify on critical threats
+                                    </label>
+                                    <small class="form-text d-block mt-1">Get notified when critical security threats are detected</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="notificationsStatus"></div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-custom">
+                                <i class="fas fa-save me-2"></i>Save Notification Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Appearance Tab Content - Improved visual selection -->
+        <div class="tab-pane fade" id="appearance-tab-pane" role="tabpanel" aria-labelledby="appearance-tab" tabindex="0">
+            <div class="card form-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-palette me-2"></i>Theme Settings</h3>
+                </div>
+                <div class="card-body">
+                    <form id="appearanceForm">
+                        <label class="form-label mb-3">Theme Mode</label>
+                        <div class="theme-selector">
+                            <div class="theme-option theme-light" id="themeLightOption">
+                                <div class="theme-preview">
+                                    <div class="theme-preview-content">
+                                        <div class="theme-preview-header"></div>
+                                        <div class="theme-preview-body"></div>
+                                    </div>
+                                </div>
+                                <div class="theme-label">
+                                    <input class="form-check-input me-2" type="radio" name="theme" id="themeLight" value="light">
+                                    <label class="form-check-label" for="themeLight">Light</label>
+                                </div>
+                            </div>
+                            
+                            <div class="theme-option theme-dark" id="themeDarkOption">
+                                <div class="theme-preview">
+                                    <div class="theme-preview-content">
+                                        <div class="theme-preview-header"></div>
+                                        <div class="theme-preview-body"></div>
+                                    </div>
+                                </div>
+                                <div class="theme-label">
+                                    <input class="form-check-input me-2" type="radio" name="theme" id="themeDark" value="dark" checked>
+                                    <label class="form-check-label" for="themeDark">Dark</label>
+                                </div>
+                            </div>
+                            
+                            <div class="theme-option theme-auto" id="themeAutoOption">
+                                <div class="theme-preview">
+                                    <div class="theme-preview-content">
+                                        <div class="theme-preview-header"></div>
+                                        <div class="theme-preview-body"></div>
+                                        <div class="theme-auto-icon">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="theme-label">
+                                    <input class="form-check-input me-2" type="radio" name="theme" id="themeAuto" value="auto">
+                                    <label class="form-check-label" for="themeAuto">System Default</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4 mt-4">
+                            <label for="fontSize" class="form-label">Font Size</label>
+                            <div class="d-flex align-items-center gap-3">
+                                <input type="range" class="form-range" id="fontSizeRange" min="12" max="18" step="2" value="14">
+                                <select class="form-select custom-select" id="fontSize" name="font_size" style="width: 180px;">
+                                    <option value="12">Small (12px)</option>
+                                    <option value="14" selected>Medium (14px)</option>
+                                    <option value="16">Large (16px)</option>
+                                    <option value="18">Extra Large (18px)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="font-size-preview mt-3 p-3">
+                                <h6>Font Size Preview</h6>
+                                <div class="font-preview-item font-size-small">This is small text (12px)</div>
+                                <div class="font-preview-item font-size-medium">This is medium text (14px)</div>
+                                <div class="font-preview-item font-size-large">This is large text (16px)</div>
+                                <div class="font-preview-item font-size-xlarge">This is extra large text (18px)</div>
+                            </div>
+                        </div>
+                        
+                        <div id="appearanceStatus"></div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" id="saveAppearanceBtn" class="btn btn-primary btn-custom">
+                                <i class="fas fa-save me-2"></i>Save Appearance Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Settings Tab (Admin Only) -->
+        {% if current_user.is_admin %}
+        <div class="tab-pane fade" id="system-tab-pane" role="tabpanel" aria-labelledby="system-tab" tabindex="0">
+            <div class="card form-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-cogs me-2"></i>System Configuration</h3>
+                </div>
+                <div class="card-body">
+                    <form id="systemSettingsForm" method="POST" action="/admin/system_settings">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <label for="logRetention" class="form-label">Log Retention (days)</label>
+                                    <input type="number" class="form-control custom-input" id="logRetention" name="log_retention_days" min="1" value="30">
+                                    <div class="form-text">Number of days to keep log files before automatic deletion.</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <label for="reportRetention" class="form-label">Report Retention (days)</label>
+                                    <input type="number" class="form-control custom-input" id="reportRetention" name="report_retention_days" min="1" value="90">
+                                    <div class="form-text">Number of days to keep report files before automatic deletion.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="maxLogSize" class="form-label">Maximum Log File Size (MB)</label>
+                            <input type="number" class="form-control custom-input" id="maxLogSize" name="max_log_file_size" min="1" value="100">
+                            <div class="form-text">Maximum file size for uploaded log files.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h5><i class="fas fa-list-check me-2"></i>Activity Logging</h5>
+                            <div class="activity-logging-options">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3 logging-switch">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="logUserLogin" name="log_user_login" checked>
+                                                <label class="form-check-label" for="logUserLogin">
+                                                    <i class="fas fa-sign-in-alt text-primary me-2"></i>Log user logins
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3 logging-switch">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="logFileUpload" name="log_file_upload" checked>
+                                                <label class="form-check-label" for="logFileUpload">
+                                                    <i class="fas fa-upload text-success me-2"></i>Log file uploads
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="mb-3 logging-switch">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="logAnalysis" name="log_analysis" checked>
+                                                <label class="form-check-label" for="logAnalysis">
+                                                    <i class="fas fa-search text-info me-2"></i>Log analysis activities
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3 logging-switch">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="logSettingsChange" name="log_settings_change" checked>
+                                                <label class="form-check-label" for="logSettingsChange">
+                                                    <i class="fas fa-cog text-warning me-2"></i>Log settings changes
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="systemSettingsStatus"></div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-custom">
+                                <i class="fas fa-save me-2"></i>Save System Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load current settings
+    loadSettings();
+    
+    // Setup form submissions
+    setupFormSubmissions();
+    
+    // Setup password validation
+    setupPasswordValidation();
+    
+    // Setup API key toggle
+    setupApiKeyToggle();
+    
+    // Setup theme settings
+    setupThemeSettings();
+});
+
+// Load current settings from API
+function loadSettings() {
+    fetch('/settings')
+        .then(response => response.json())
+        .then(data => {
+            // Set API settings
+            if (data.api_settings) {
+                document.getElementById('api_threshold').value = data.api_settings.threshold || 75;
+            }
+            
+            // Set notification settings
+            if (data.notification_settings) {
+                document.getElementById('notify_on_upload').checked = data.notification_settings.notify_on_upload;
+                document.getElementById('notify_on_analysis').checked = data.notification_settings.notify_on_analysis;
+                document.getElementById('notify_on_critical').checked = data.notification_settings.notify_on_critical;
+            }
+            
+            // Set appearance settings
+            if (data.appearance_settings) {
+                document.getElementById('fontSize').value = data.appearance_settings.font_size || 14;
+                
+                // Set theme
+                const savedTheme = localStorage.getItem('theme') || 'dark';
+                if (savedTheme === 'light') {
+                    document.getElementById('themeLight').checked = true;
+                } else if (savedTheme === 'dark') {
+                    document.getElementById('themeDark').checked = true;
+                } else {
+                    document.getElementById('themeAuto').checked = true;
+                }
+            }
+            
+            // Set system settings (admin only)
+            if (document.getElementById('systemSettingsForm')) {
+                fetch('/admin/system_settings')
+                    .then(response => response.json())
+                    .then(sysData => {
+                        if (sysData.settings) {
+                            document.getElementById('logRetention').value = sysData.settings.log_retention_days || 30;
+                            document.getElementById('reportRetention').value = sysData.settings.report_retention_days || 90;
+                            document.getElementById('maxLogSize').value = sysData.settings.max_log_file_size || 100;
+                            
+                            document.getElementById('logUserLogin').checked = sysData.settings.log_user_login;
+                            document.getElementById('logFileUpload').checked = sysData.settings.log_file_upload;
+                            document.getElementById('logAnalysis').checked = sysData.settings.log_analysis;
+                            document.getElementById('logSettingsChange').checked = sysData.settings.log_settings_change;
+                        }
+                    })
+                    .catch(error => console.error('Error loading system settings:', error));
+            }
+        })
+        .catch(error => console.error('Error loading settings:', error));
+}
+
+// Setup form submissions
+function setupFormSubmissions() {
+    // User profile form
+    const userProfileForm = document.getElementById('userProfileForm');
+    if (userProfileForm) {
+        userProfileForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/settings/user', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('userProfileStatus');
+                if (data.success) {
+                    status.innerHTML = '<div class="alert alert-success mt-3">Profile updated successfully</div>';
+                } else {
+                    status.innerHTML = `<div class="alert alert-danger mt-3">Error: ${data.message}</div>`;
+                }
+                
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error updating profile:', error);
+            });
+        });
+    }
+    
+    // Password form
+    const passwordForm = document.getElementById('passwordForm');
+    if (passwordForm) {
+        passwordForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newPassword = document.getElementById('new_password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            
+            if (newPassword !== confirmPassword) {
+                document.getElementById('confirm_password').classList.add('is-invalid');
+                document.getElementById('passwordMatchFeedback').style.display = 'block';
+                return;
+            }
+            
+            const formData = new FormData(this);
+            
+            fetch('/settings/user', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('passwordStatus');
+                if (data.success) {
+                    status.innerHTML = '<div class="alert alert-success mt-3">Password changed successfully</div>';
+                    passwordForm.reset();
+                } else {
+                    status.innerHTML = `<div class="alert alert-danger mt-3">Error: ${data.message}</div>`;
+                }
+                
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error changing password:', error);
+            });
+        });
+    }
+    
+    // API settings form
+    const apiSettingsForm = document.getElementById('apiSettingsForm');
+    if (apiSettingsForm) {
+        apiSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/settings/api', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('apiSettingsStatus');
+                if (data.success) {
+                    status.innerHTML = '<div class="alert alert-success mt-3">API settings saved successfully</div>';
+                } else {
+                    status.innerHTML = `<div class="alert alert-danger mt-3">Error: ${data.message}</div>`;
+                }
+                
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error saving API settings:', error);
+            });
+        });
+    }
+    
+    // Notifications form
+    const notificationsForm = document.getElementById('notificationsForm');
+    if (notificationsForm) {
+        notificationsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/settings/notifications', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('notificationsStatus');
+                if (data.success) {
+                    status.innerHTML = '<div class="alert alert-success mt-3">Notification settings saved successfully</div>';
+                } else {
+                    status.innerHTML = `<div class="alert alert-danger mt-3">Error: ${data.message}</div>`;
+                }
+                
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error saving notification settings:', error);
+            });
+        });
+    }
+    
+    // Appearance settings
+    const saveAppearanceBtn = document.getElementById('saveAppearanceBtn');
+    if (saveAppearanceBtn) {
+        saveAppearanceBtn.addEventListener('click', function() {
+            const fontSize = document.getElementById('fontSize').value;
+            let theme = 'dark';
+            
+            if (document.getElementById('themeLight').checked) {
+                theme = 'light';
+            } else if (document.getElementById('themeDark').checked) {
+                theme = 'dark';
+            } else if (document.getElementById('themeAuto').checked) {
+                theme = 'auto';
+            }
+            
+            // Update theme
+            if (theme === 'auto') {
+                localStorage.removeItem('theme');
+                
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } else {
+                localStorage.setItem('theme', theme);
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            
+            // Update font size
+            document.documentElement.style.setProperty('--font-size-base', `${fontSize}px`);
+            localStorage.setItem('fontSize', fontSize);
+            
+            // Save settings to server
+            fetch('/settings/appearance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    theme: theme,
+                    font_size: fontSize
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('appearanceStatus');
+                if (data.success) {
+                    status.innerHTML = '<div class="alert alert-success mt-3">Appearance settings saved successfully</div>';
+                } else {
+                    status.innerHTML = `<div class="alert alert-danger mt-3">Error: ${data.message}</div>`;
+                }
+                
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error saving appearance settings:', error);
+            });
+        });
+    }
+    
+    // System settings form (admin only)
+    const systemSettingsForm = document.getElementById('systemSettingsForm');
+    if (systemSettingsForm) {
+        systemSettingsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            fetch('/admin/system_settings', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const status = document.getElementById('systemSettingsStatus');
+                if (data.success) {
+                    status.innerHTML = '<div class="alert alert-success mt-3">System settings saved successfully</div>';
+                } else {
+                    status.innerHTML = `<div class="alert alert-danger mt-3">Error: ${data.message}</div>`;
+                }
+                
+                setTimeout(() => {
+                    status.innerHTML = '';
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Error saving system settings:', error);
+            });
+        });
+    }
+}
+
+// Setup password validation
+function setupPasswordValidation() {
+    const newPassword = document.getElementById('new_password');
+    const confirmPassword = document.getElementById('confirm_password');
+    
+    if (newPassword && confirmPassword) {
+        confirmPassword.addEventListener('input', function() {
+            if (this.value !== newPassword.value) {
+                this.classList.add('is-invalid');
+                document.getElementById('passwordMatchFeedback').style.display = 'block';
+            } else {
+                this.classList.remove('is-invalid');
+                document.getElementById('passwordMatchFeedback').style.display = 'none';
+            }
+        });
+    }
+}
+
+// Setup API key toggle visibility
+function setupApiKeyToggle() {
+    const toggleApiKey = document.getElementById('toggleApiKey');
+    const apiKey = document.getElementById('api_key');
+    
+    if (toggleApiKey && apiKey) {
+        toggleApiKey.addEventListener('click', function() {
+            const type = apiKey.getAttribute('type') === 'password' ? 'text' : 'password';
+            apiKey.setAttribute('type', type);
+            
+            const icon = this.querySelector('i');
+            if (type === 'text') {
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                icon.className = 'fas fa-eye';
+            }
+        });
+    }
+}
+
+// Setup theme settings
+function setupThemeSettings() {
+    // Initialize theme based on localStorage
+    const savedTheme = localStorage.getItem('theme');
+    const savedFontSize = localStorage.getItem('fontSize');
+    
+    if (savedTheme) {
+        if (savedTheme === 'light') {
+            document.getElementById('themeLight').checked = true;
+        } else {
+            document.getElementById('themeDark').checked = true;
+        }
+    } else {
+        document.getElementById('themeAuto').checked = true;
+    }
+    
+    if (savedFontSize) {
+        document.getElementById('fontSize').value = savedFontSize;
+    }
+}
+
+// Update threshold input and range to stay in sync
+document.addEventListener('DOMContentLoaded', function() {
+    const thresholdRange = document.getElementById('thresholdRange');
+    const thresholdInput = document.getElementById('api_threshold');
+    
+    if (thresholdRange && thresholdInput) {
+        thresholdRange.addEventListener('input', function() {
+            thresholdInput.value = this.value;
+        });
+        
+        thresholdInput.addEventListener('input', function() {
+            thresholdRange.value = this.value;
+        });
+    }
+    
+    // Add password strength meter
+    const newPassword = document.getElementById('new_password');
+    const passwordStrength = document.getElementById('passwordStrength');
+    
+    if (newPassword && passwordStrength) {
+        newPassword.addEventListener('input', function() {
+            const strength = checkPasswordStrength(this.value);
+            updatePasswordStrengthUI(strength, passwordStrength);
+        });
+    }
+});
+
+function checkPasswordStrength(password) {
+    if (!password) return 0;
+    
+    let strength = 0;
+    if (password.length >= 8) strength += 1;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength += 1;
+    if (password.match(/\d/)) strength += 1;
+    if (password.match(/[^a-zA-Z\d]/)) strength += 1;
+    
+    return strength;
+}
+
+function updatePasswordStrengthUI(strength, element) {
+    const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+    const strengthColors = ['#dc3545', '#ffc107', '#6c757d', '#0d6efd', '#198754'];
+    
+    let strengthIndex = Math.min(strength, 4);
+    let width = (strength + 1) * 20; // 20% per strength level
+    
+    element.innerHTML = `
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: ${width}%; background-color: ${strengthColors[strengthIndex]};" 
+                 aria-valuenow="${width}" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <small class="mt-1 d-block" style="color: ${strengthColors[strengthIndex]};">${strengthLabels[strengthIndex]}</small>
+    `;
+}
+
+// Update theme options to make them more interactive
+document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced theme selection
+    const themeLightOption = document.getElementById('themeLightOption');
+    const themeDarkOption = document.getElementById('themeDarkOption');
+    const themeAutoOption = document.getElementById('themeAutoOption');
+    
+    if (themeLightOption && themeDarkOption && themeAutoOption) {
+        // Light theme option
+        themeLightOption.addEventListener('click', function() {
+            document.getElementById('themeLight').checked = true;
+            updateThemeOptionSelection();
+        });
+        
+        // Dark theme option
+        themeDarkOption.addEventListener('click', function() {
+            document.getElementById('themeDark').checked = true;
+            updateThemeOptionSelection();
+        });
+        
+        // Auto theme option
+        themeAutoOption.addEventListener('click', function() {
+            document.getElementById('themeAuto').checked = true;
+            updateThemeOptionSelection();
+        });
+        
+        // Initialize selected state
+        updateThemeOptionSelection();
+        
+        // Link font size range and dropdown
+        const fontSizeRange = document.getElementById('fontSizeRange');
+        const fontSizeSelect = document.getElementById('fontSize');
+        
+        if (fontSizeRange && fontSizeSelect) {
+            // Initialize range value
+            fontSizeRange.value = fontSizeSelect.value;
+            
+            // Sync range with dropdown
+            fontSizeRange.addEventListener('input', function() {
+                fontSizeSelect.value = this.value;
+                updateFontPreview(this.value);
+            });
+            
+            // Sync dropdown with range
+            fontSizeSelect.addEventListener('change', function() {
+                fontSizeRange.value = this.value;
+                updateFontPreview(this.value);
+            });
+            
+            // Initialize font preview
+            updateFontPreview(fontSizeSelect.value);
+        }
+    }
+});
+
+// Helper function to update theme option selection
+function updateThemeOptionSelection() {
+    const themeLightOption = document.getElementById('themeLightOption');
+    const themeDarkOption = document.getElementById('themeDarkOption');
+    const themeAutoOption = document.getElementById('themeAutoOption');
+    
+    // Remove selected class from all
+    themeLightOption.classList.remove('selected');
+    themeDarkOption.classList.remove('selected');
+    themeAutoOption.classList.remove('selected');
+    
+    // Add selected class based on radio button state
+    if (document.getElementById('themeLight').checked) {
+        themeLightOption.classList.add('selected');
+    } else if (document.getElementById('themeDark').checked) {
+        themeDarkOption.classList.add('selected');
+    } else if (document.getElementById('themeAuto').checked) {
+        themeAutoOption.classList.add('selected');
+    }
+}
+
+// Helper function to update font preview
+function updateFontPreview(fontSize) {
+    document.querySelectorAll('.font-preview-item').forEach(function(item) {
+        item.classList.remove('active');
+    });
+    
+    // Highlight the selected font size
+    let sizeClass;
+    switch (fontSize) {
+        case '12': sizeClass = 'font-size-small'; break;
+        case '14': sizeClass = 'font-size-medium'; break;
+        case '16': sizeClass = 'font-size-large'; break;
+        case '18': sizeClass = 'font-size-xlarge'; break;
+    }
+    
+    if (sizeClass) {
+        document.querySelector('.' + sizeClass).classList.add('active');
+    }
+}
+</script>
+{% endblock %}

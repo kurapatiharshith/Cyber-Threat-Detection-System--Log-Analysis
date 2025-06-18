@@ -1,0 +1,74 @@
+<nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+    <div class="position-sticky pt-3">
+        <!-- Add sidebar toggle button -->
+        <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+            <span class="fs-6 fw-semibold">Menu</span>
+            <button class="btn btn-sm btn-outline-secondary" type="button" id="sidebarToggleBtn">
+                <i class="fas fa-angle-left"></i>
+            </button>
+        </div>
+        
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.path == url_for('dashboard') else '' }}" href="{{ url_for('dashboard') }}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.path == url_for('logs') else '' }}" href="{{ url_for('logs') }}">
+                    <i class="fas fa-file-alt"></i> Logs
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.path == url_for('reports') else '' }}" href="{{ url_for('reports') }}">
+                    <i class="fas fa-chart-bar"></i> Reports
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.path == url_for('settings') else '' }}" href="{{ url_for('settings') }}">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </li>
+            {% if current_user.is_admin %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if request.path == url_for('admin') else '' }}" href="{{ url_for('admin') }}">
+                    <i class="fas fa-user-shield"></i> Admin
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup sidebar toggle button
+    const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
+    const sidebar = document.getElementById('sidebar');
+    
+    if (sidebarToggleBtn && sidebar) {
+        sidebarToggleBtn.addEventListener('click', function() {
+            // Toggle the collapse class using Bootstrap's built-in functionality
+            if (typeof bootstrap !== 'undefined') {
+                const bsCollapse = bootstrap.Collapse.getInstance(sidebar) || new bootstrap.Collapse(sidebar, {toggle: false});
+                bsCollapse.toggle();
+            } else {
+                sidebar.classList.toggle('show');
+            }
+            
+            // Toggle the icon
+            const icon = this.querySelector('i');
+            if (icon.classList.contains('fa-angle-left')) {
+                icon.classList.replace('fa-angle-left', 'fa-angle-right');
+            } else {
+                icon.classList.replace('fa-angle-right', 'fa-angle-left');
+            }
+        });
+        
+        // Set initial icon based on sidebar state
+        if (!sidebar.classList.contains('show')) {
+            sidebarToggleBtn.querySelector('i').classList.replace('fa-angle-left', 'fa-angle-right');
+        }
+    }
+});
+</script>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Log Analyzer{% endblock %}</title>
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='img/tab-logo.png') }}" type="image/x-icon">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <!-- Prevent caching -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    {% block head %}{% endblock %}
+    {% block styles %}{% endblock %}
+</head>
+<body class="sidebar-collapsed">
+    {% if current_user.is_authenticated %}
+        <!-- Only show header and sidebar for authenticated users -->
+        <header class="header">
+            <div class="header-left">
+                <button id="sidebarToggleBtn" class="sidebar-toggle">
+                    <i class="fas fa-angle-right"></i> <!-- Default to right arrow for collapsed state -->
+                </button>
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Log Analyzer" style="width: auto; min-width: 120px; max-width: 180px; height: auto;">
+                    <span>Log Analyzer</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="search-container">
+                    <input type="text" id="globalSearch" placeholder="Search logs...">
+                    <button id="globalSearchBtn" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button id="themeToggleBtn" class="theme-toggle" title="Toggle Theme">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="user-dropdown">
+                    <button class="user-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span>{{ current_user.username }}</span>
+                        <i class="fas fa-angle-down"></i>
+                    </button>
+                    <div class="dropdown-content">
+                        <a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="{{ url_for('logout') }}" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <nav class="sidebar collapsed">
+            <ul class="menu">
+                <li class="{{ 'active' if request.endpoint == 'dashboard' else '' }}">
+                    <a href="{{ url_for('dashboard') }}" title="Dashboard">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="{{ 'active' if request.endpoint == 'logs' else '' }}">
+                    <a href="{{ url_for('logs') }}" title="Logs">
+                        <i class="fas fa-list-alt"></i>
+                        <span>Logs</span>
+                    </a>
+                </li>
+                <li class="{{ 'active' if request.endpoint == 'reports' else '' }}">
+                    <a href="{{ url_for('reports') }}" title="Reports">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li class="{{ 'active' if request.endpoint == 'search' else '' }}">
+                    <a href="#" id="sidebarSearchBtn" title="Search">
+                        <i class="fas fa-search"></i>
+                        <span>Search</span>
+                    </a>
+                </li>
+                {% if current_user.is_admin %}
+                <li class="{{ 'active' if request.endpoint == 'admin' else '' }}">
+                    <a href="{{ url_for('admin') }}" title="Admin Panel">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Admin</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <h3>Recent Logs</h3>
+                    <input type="text" id="logSearchSidebar" placeholder="Search logs...">
+                </div>
+                <ul id="uploadedLogsList" class="logs-list">
+                    <li class="log-list-empty">Loading logs...</li>
+                </ul>
+            </div>
+        </nav>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Add Search Modal -->
+        <div class="search-modal" id="searchModal">
+            <div class="search-modal-backdrop"></div>
+            <div class="search-modal-content">
+                <div class="search-modal-header">
+                    <h3><i class="fas fa-search"></i> Search Logs & Reports</h3>
+                    <button type="button" class="search-close-btn" id="searchModalClose">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="search-modal-body">
+                    <div class="google-search-container">
+                        <div class="search-form-wrapper">
+                            <div class="google-search-box">
+                                <input type="text" id="modalSearchQuery" placeholder="Search for keywords, IPs, threats..." class="google-search-input">
+                                <div class="search-dropdown">
+                                    <select id="modalSeverityFilter" class="google-search-select">
+                                        <option value="">All Severities</option>
+                                        <option value="critical">Critical</option>
+                                        <option value="high">High</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="low">Low</option>
+                                        <option value="info">Info</option>
+                                    </select>
+                                </div>
+                                <button id="modalSearchButton" class="google-search-button">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-shortcuts">
+                        <div class="search-shortcut-title">Quick searches:</div>
+                        <div class="search-shortcut-items">
+                            <a href="/search?query=error" class="search-shortcut"><i class="fas fa-exclamation-triangle"></i> Error logs</a>
+                            <a href="/search?query=critical" class="search-shortcut"><i class="fas fa-radiation"></i> Critical issues</a>
+                            <a href="/search?query=authentication" class="search-shortcut"><i class="fas fa-key"></i> Auth issues</a>
+                            <a href="/search?query=network" class="search-shortcut"><i class="fas fa-network-wired"></i> Network logs</a>
+                            <a href="/search?query=warning" class="search-shortcut"><i class="fas fa-exclamation"></i> Warnings</a>
+                            <a href="/search?query=failed" class="search-shortcut"><i class="fas fa-times-circle"></i> Failed operations</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- For non-authenticated users, only show the auth content block -->
+        <main class="content-auth">
+            {% block auth_content %}{% endblock %}
+        </main>
+    {% endif %}
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% endif %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

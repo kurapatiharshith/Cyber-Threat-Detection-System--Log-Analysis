@@ -1,0 +1,217 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="reports-container">
+    <style>
+        /* Ensure proper contrast for report entries in dark mode */
+        [data-theme="dark"] .reports-table {
+            color: #f8f9fa;
+        }
+        
+        [data-theme="dark"] .reports-table thead th {
+            color: #f8f9fa;
+        }
+        
+        /* Make hover effect more visible in dark mode with better contrast */
+        [data-theme="dark"] .table-hover tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+            color: #ffffff !important;
+        }
+        
+        /* Force text color on hover for any row */
+        [data-theme="dark"] .table-hover tbody tr:hover td,
+        [data-theme="dark"] .table-hover tbody tr:hover th {
+            color: #ffffff !important;
+        }
+        
+        [data-theme="dark"] .report-viewer-container {
+            color: #f8f9fa;
+        }
+        
+        [data-theme="dark"] .report-content-container .table:not(.table-dark) {
+            color: #f8f9fa;
+        }
+        
+        /* Ensure all tables in dark mode have proper text contrast */
+        [data-theme="dark"] .table {
+            color: #f8f9fa !important;
+        }
+        
+        [data-theme="dark"] .table td, 
+        [data-theme="dark"] .table th {
+            color: #f8f9fa !important;
+        }
+    </style>
+    <div class="reports-header">
+        <h1><i class="fas fa-chart-bar me-2"></i>Reports</h1>
+        <div class="reports-actions">
+            <div class="input-group">
+                <select id="reportFormatFilter" class="form-select custom-select">
+                    <option value="all">All Formats</option>
+                    <option value="html">HTML</option>
+                    <option value="json">JSON</option>
+                    <option value="txt">Text</option>
+                </select>
+                <button class="btn btn-primary" id="refreshReports" title="Refresh reports">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="reports-list-container">
+        <table class="table table-hover reports-table">
+            <thead>
+                <tr>
+                    <th><i class="fas fa-file-alt me-2"></i>Report Name</th>
+                    <th><i class="fas fa-calendar me-2"></i>Date</th>
+                    <th><i class="fas fa-code me-2"></i>Format</th>
+                    <th><i class="fas fa-weight me-2"></i>Size</th>
+                    <th><i class="fas fa-cogs me-2"></i>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="reportsTableBody">
+                <tr><td colspan="5" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading reports...</p>
+                </td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="report-viewer-container" id="reportViewerContainer" style="display:none;">
+        <div class="report-viewer-header">
+            <div class="report-title">
+                <h3 id="currentReportName">No report selected</h3>
+                <span id="reportTimestamp" class="report-timestamp">-</span>
+            </div>
+            <div class="report-actions">
+                <button id="closeReportBtn" class="btn btn-outline-secondary btn-custom me-2">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <div class="btn-group" id="downloadBtns">
+                    <a href="#" id="downloadReportBtn" class="btn btn-primary btn-custom" download>
+                        <i class="fas fa-download me-1"></i> Download
+                    </a>
+                    <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="visually-hidden">Toggle Dropdown</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" id="printReportBtn"><i class="fas fa-print me-2"></i>Print</a></li>
+                        <li><a class="dropdown-item" href="#" id="shareReportBtn"><i class="fas fa-share-alt me-2"></i>Share</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="report-content-container">
+            <div class="report-summary-section">
+                <h4 class="section-title"><i class="fas fa-chart-pie me-2"></i>Executive Summary</h4>
+                <div class="summary-stats">
+                    <div class="summary-stat-card">
+                        <div class="stat-number" id="totalThreats">0</div>
+                        <div class="stat-label">Total Threats</div>
+                    </div>
+                    <div class="summary-stat-card" style="border-left: 4px solid #dc3545;">
+                        <div class="stat-number" id="criticalThreats" style="color: #dc3545;">0</div>
+                        <div class="stat-label">Critical</div>
+                    </div>
+                    <div class="summary-stat-card" style="border-left: 4px solid #fd7e14;">
+                        <div class="stat-number" id="highThreats" style="color: #fd7e14;">0</div>
+                        <div class="stat-label">High</div>
+                    </div>
+                    <div class="summary-stat-card" style="border-left: 4px solid #ffc107;">
+                        <div class="stat-number" id="mediumThreats" style="color: #ffc107;">0</div>
+                        <div class="stat-label">Medium</div>
+                    </div>
+                    <div class="summary-stat-card" style="border-left: 4px solid #198754;">
+                        <div class="stat-number" id="lowThreats" style="color: #198754;">0</div>
+                        <div class="stat-label">Low</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-stats-grid">
+                <div class="report-stat-table">
+                    <h4 class="section-title"><i class="fas fa-network-wired me-2"></i>Network Activity</h4>
+                    <div id="logDuration" class="mb-3 text-info">
+                        <i class="fas fa-clock me-1"></i> Analyzing time range...
+                    </div>
+                    <h5><i class="fas fa-exchange-alt me-2"></i>Top Protocols</h5>
+                    <table class="table table-sm table-striped custom-table">
+                        <thead class="table-header">
+                            <tr>
+                                <th>Protocol</th>
+                                <th>Count</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody id="protocolsTable">
+                            <tr><td colspan="3" class="text-center">No data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="report-stat-table">
+                    <h4 class="section-title"><i class="fas fa-server me-2"></i>Top Source IPs</h4>
+                    <table class="table table-sm table-striped custom-table">
+                        <thead class="table-header">
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Count</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sourceIpsTable">
+                            <tr><td colspan="3" class="text-center">No data available</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="report-threats-section">
+                <h4 class="section-title"><i class="fas fa-shield-alt me-2"></i>Detected Threats</h4>
+                <table class="table table-striped table-hover custom-table">
+                    <thead class="table-header">
+                        <tr>
+                            <th>Rule Name</th>
+                            <th>Severity</th>
+                            <th>Line Number</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="threatsTable">
+                        <tr><td colspan="4" class="text-center">No threats detected</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Threat Detail Modal -->
+<div class="modal fade" id="threatDetailModal" tabindex="-1" aria-labelledby="threatDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content custom-modal">
+            <div class="modal-header">
+                <h5 class="modal-title" id="threatDetailModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Threat Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="threat-detail-content">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-custom" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endblock %}

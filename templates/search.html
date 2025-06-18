@@ -1,0 +1,531 @@
+{% extends "layout.html" %}
+
+{% block title %}Search Logs | Log Analyzer{% endblock %}
+
+{% block content %}
+<div class="search-page">
+    <div class="page-header text-center">
+        <h1><i class="fas fa-search"></i> Search</h1>
+        <!-- Removed the descriptive text that was here -->
+    </div>
+
+    <div class="google-search-container">
+        <div class="search-form-wrapper">
+            <div class="google-search-box">
+                <input type="text" id="searchQuery" placeholder="Search for keywords, IPs, threats..." class="google-search-input" value="{{ query }}">
+                <div class="search-dropdown">
+                    <select id="severityFilter" class="google-search-select">
+                        <option value="">All Severities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                        <option value="info">Info</option>
+                    </select>
+                </div>
+                <button id="searchButton" class="google-search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="searchResults" class="search-results-container mt-4"></div>
+
+    <!-- Preview container -->
+    <div class="preview-container" id="previewContainer" style="display:none;">
+        <h3>Preview</h3>
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                <span id="previewTitle" class="text-muted"></span>
+            </div>
+            <div>
+                <a id="downloadLink" href="#" class="btn btn-sm btn-primary mr-2">
+                    <i class="fas fa-download"></i> Download
+                </a>
+                <button id="closePreview" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+        <div class="report-preview" id="reportPreview"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Google-like search styling */
+    .google-search-container {
+        display: flex;
+        justify-content: center;
+        padding: 30px 0;
+    }
+
+    .search-form-wrapper {
+        width: 100%;
+        max-width: 650px;
+    }
+
+    .google-search-box {
+        height: 54px;
+        border-radius: 8px;
+        background-color: var(--bg-tertiary);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        border: 2px solid var(--border-color);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+    }
+
+    .google-search-box:hover,
+    .google-search-box:focus-within {
+        border-color: var(--accent-color);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .google-search-input {
+        flex: 1;
+        height: 100%;
+        border: none;
+        outline: none;
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 18px;
+        padding: 0 20px;
+        font-family: inherit;
+    }
+
+    .search-dropdown {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        border-left: 2px solid var(--border-color);
+        padding: 0 8px;
+        min-width: 130px;
+    }
+
+    .google-search-select {
+        width: 100%;
+        height: 100%;
+        appearance: none;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text-primary);
+        padding: 0 25px 0 10px;
+        cursor: pointer;
+        font-size: 16px;
+        font-family: inherit;
+    }
+
+    .google-search-select option {
+        background-color: var(--bg-secondary);
+        color: var(--text-primary);
+        padding: 10px;
+        font-size: 16px;
+    }
+
+    .search-dropdown::after {
+        content: '';
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-25%);
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-top: 6px solid var(--accent-color);
+        pointer-events: none;
+    }
+
+    .google-search-button {
+        height: 54px;
+        width: 60px;
+        background: var(--accent-color);
+        color: white;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.2s;
+    }
+
+    .google-search-button:hover {
+        background: var(--accent-hover);
+    }
+
+    .search-results-container {
+        max-width: 850px;
+        margin: 0 auto;
+    }
+
+    /* Enhanced search result styling */
+    .search-result-item {
+        padding: 16px;
+        margin-bottom: 16px;
+        background-color: var(--bg-secondary);
+        border-radius: 8px;
+        border-left: 4px solid var(--info-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .search-result-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Make page header more Google-like */
+    .search-page .page-header {
+        padding-top: 30px;
+        margin-bottom: 10px;
+    }
+
+    .search-page .page-header h1 {
+        font-size: 2.2rem;
+        font-weight: 400;
+        letter-spacing: -1px;
+        color: var(--accent-color);
+    }
+
+    .search-page .page-header h1 i {
+        margin-right: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Load log files on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-search if query is provided
+        const searchQueryInput = document.getElementById('searchQuery');
+        if (searchQueryInput.value) {
+            setTimeout(() => document.getElementById('searchButton').click(), 500);
+        }
+    });
+
+    // Search button click handler
+    document.getElementById('searchButton').addEventListener('click', function() {
+        const query = document.getElementById('searchQuery').value;
+        const severity = document.getElementById('severityFilter').value;
+        
+        if (!query && !severity) {
+            alert('Please enter search terms to find in log files');
+            return;
+        }
+        
+        // Show loading state
+        const resultsDiv = document.getElementById('searchResults');
+        resultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Searching logs and reports...</p>';
+        
+        // Create form data for the search request
+        const formData = new FormData();
+        formData.append('query', query);
+        formData.append('severity', severity);
+        
+        // Log the search activity
+        logSearchActivity(query, severity);
+        
+        fetch('/search_logs', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            // Check if response is ok before parsing JSON
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Check for error in the JSON response
+            if (data.error) {
+                resultsDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                return;
+            }
+            
+            if (data.total === 0) {
+                resultsDiv.innerHTML = '<div class="alert alert-info">No matching results found.</div>';
+                return;
+            }
+            
+            // Display search results
+            let resultsHTML = `<h5>Found ${data.total} matching results</h5>`;
+            
+            data.results.forEach(result => {
+                // Determine if this is a log file entry or a report threat
+                const isLogEntry = result.source_type === 'log';
+                const reportFile = result.report_file ? result.report_file.split('/').pop() : 'N/A';
+                const fileName = result.file ? result.file.split(/[\/\\]/).pop() : 'Unknown';
+                
+                // Different styling for log entries vs threats
+                const itemClass = isLogEntry ? 'info' : result.severity;
+                
+                resultsHTML += `
+                    <div class="search-result-item ${itemClass}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>
+                                ${isLogEntry ? 'Log Entry' : result.rule_name} 
+                                <span class="badge badge-${isLogEntry ? 'info' : result.severity}">
+                                    ${isLogEntry ? 'LOG' : result.severity.toUpperCase()}
+                                </span>
+                            </h5>
+                            <div>
+                                <button class="btn btn-sm btn-info ${isLogEntry ? 'view-log-file' : 'view-threat-details'}" 
+                                        data-file="${result.file}" 
+                                        data-threat='${isLogEntry ? '' : JSON.stringify(result).replace(/'/g, "&#39;")}'>
+                                    <i class="fas fa-eye"></i> View ${isLogEntry ? 'Log' : 'Details'}
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <small class="text-muted">
+                                File: ${fileName} • Line: ${result.line_num}
+                                ${isLogEntry ? '' : ` • Report: ${reportFile}`}
+                            </small>
+                        </div>
+                        <div class="mt-2">
+                            <code>${result.matched && result.matched.length > 200 ? 
+                                   result.matched.substring(0, 200) + '...' : 
+                                   result.matched || 'No content'}</code>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = resultsHTML;
+            
+            // Add event listeners to view details buttons for threats
+            document.querySelectorAll('.view-threat-details').forEach(button => {
+                button.addEventListener('click', function() {
+                    const threatData = JSON.parse(this.getAttribute('data-threat'));
+                    showThreatPreview(threatData);
+                });
+            });
+            
+            // Add event listeners for log file previews
+            document.querySelectorAll('.view-log-file').forEach(button => {
+                button.addEventListener('click', function() {
+                    const filePath = this.getAttribute('data-file');
+                    const fileName = filePath.split(/[\/\\]/).pop();
+                    showLogFilePreview(fileName);
+                });
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            resultsDiv.innerHTML = `<div class="alert alert-danger">Error processing search: ${error.message}. Please check the console for details.</div>`;
+        });
+    });
+
+    // Function to log search activity
+    function logSearchActivity(query, severity) {
+        const activity = {
+            activity_type: 'search',
+            details: {
+                query: query,
+                severity: severity || 'all',
+                source: 'search_page'
+            }
+        };
+        
+        fetch('/log_activity', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(activity)
+        }).catch(err => console.error('Error logging activity:', err));
+    }
+
+    // Show preview of a log file
+    function showLogFilePreview(fileName) {
+        const previewContainer = document.getElementById('previewContainer');
+        previewContainer.style.display = 'block';
+        
+        const previewTitle = document.getElementById('previewTitle');
+        previewTitle.textContent = `Log File: ${fileName}`;
+        
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = `/uploads/${fileName}`;
+        downloadLink.style.display = 'inline-block';
+        
+        const previewDiv = document.getElementById('reportPreview');
+        previewDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Loading log file...</p>';
+        
+        fetch(`/preview_log/${fileName}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(content => {
+                // Always display as plain text
+                previewDiv.innerHTML = `<pre style="color: #e6e6e6; white-space: pre-wrap;">${escapeHtml(content)}</pre>`;
+                
+                // Scroll to the preview
+                previewContainer.scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error loading log file:', error);
+                previewDiv.innerHTML = `<div class="alert alert-danger">Error loading log file: ${error.message}</div>`;
+            });
+    }
+
+    // Show preview of a specific threat
+    function showThreatPreview(threat) {
+        const previewContainer = document.getElementById('previewContainer');
+        previewContainer.style.display = 'block';
+        
+        const previewTitle = document.getElementById('previewTitle');
+        previewTitle.textContent = `Threat: ${threat.rule_name}`;
+        
+        const downloadLink = document.getElementById('downloadLink');
+        if (threat.report_file) {
+            downloadLink.href = threat.report_file;
+            downloadLink.style.display = 'inline-block';
+        } else {
+            downloadLink.style.display = 'none';
+        }
+        
+        const previewDiv = document.getElementById('reportPreview');
+        
+        // Format the threat details for display
+        previewDiv.innerHTML = `
+            <div class="alert alert-${threat.severity}">
+                <strong>${threat.rule_id}: ${threat.rule_name}</strong>
+            </div>
+            <div class="mb-3">
+                <h6>Description</h6>
+                <p>${truncateText(threat.description, 1000)}</p>
+            </div>
+            <div class="mb-3">
+                <h6>Remediation</h6>
+                <p>${threat.remediation || 'No remediation provided'}</p>
+            </div>
+            <div class="mb-3">
+                <h6>Affected Code</h6>
+                <pre class="bg-dark text-light p-3 rounded">${threat.line || 'N/A'}</pre>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>File Details</h6>
+                    <table class="table table-sm table-dark">
+                        <tr>
+                            <td>File:</td>
+                            <td>${threat.file || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Line #:</td>
+                            <td>${threat.line_num || 'N/A'}</td>
+                        </tr>
+                        <tr>
+                            <td>Detection Time:</td>
+                            <td>${new Date(threat.detection_time || threat.timestamp || Date.now()).toLocaleString()}</td>
+                        </tr>
+                    </table>
+                </div>
+        `;
+        
+        // Add file hash information if available
+        if (threat.file_hash) {
+            previewDiv.innerHTML += `
+                <div class="col-md-6">
+                    <h6>File Hash</h6>
+                    <table class="table table-sm table-dark">
+                        <tr>
+                            <td>MD5:</td>
+                            <td><code>${threat.file_hash.md5}</code></td>
+                        </tr>
+                        <tr>
+                            <td>SHA256:</td>
+                            <td><code>${threat.file_hash.sha256}</code></td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+        }
+        
+        previewDiv.innerHTML += '</div>';
+        
+        // Scroll to the preview
+        previewContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Function to show log context in the preview
+    function showLogContextPreview(fileName, lineNum) {
+        const previewContainer = document.getElementById('previewContainer');
+        previewContainer.style.display = 'block';
+        
+        const previewTitle = document.getElementById('previewTitle');
+        previewTitle.textContent = `Log File: ${fileName} (Line ${lineNum})`;
+        
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = `/uploads/${fileName}`;
+        downloadLink.style.display = 'inline-block';
+        
+        const previewDiv = document.getElementById('reportPreview');
+        previewDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Loading log context...</p>';
+        
+        fetch(`/preview_log/${fileName}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(content => {
+                // Display the log with the target line highlighted
+                const lines = content.split('\n');
+                let startLine = Math.max(0, lineNum - 10);
+                let endLine = Math.min(lines.length, lineNum + 10);
+                
+                let displayContent = '';
+                for (let i = startLine; i < endLine; i++) {
+                    if (i + 1 === lineNum) {
+                        displayContent += `<span style="background-color: #ffff00; color: black;">${i + 1}: ${escapeHtml(lines[i])}</span>\n`;
+                    } else {
+                        displayContent += `${i + 1}: ${escapeHtml(lines[i])}\n`;
+                    }
+                }
+                
+                previewDiv.innerHTML = `<pre style="color: #e6e6e6; white-space: pre-wrap;">${displayContent}</pre>`;
+                
+                // Scroll to the preview
+                previewContainer.scrollIntoView({ behavior: 'smooth' });
+            })
+            .catch(error => {
+                console.error('Error loading log file:', error);
+                previewDiv.innerHTML = `<div class="alert alert-danger">Error loading log file: ${error.message}</div>`;
+            });
+    }
+
+    // Close preview button handler
+    document.getElementById('closePreview').addEventListener('click', function() {
+        document.getElementById('previewContainer').style.display = 'none';
+    });
+
+    // Escape HTML to prevent XSS when showing raw content
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Truncate long text with ellipsis
+    function truncateText(text, maxLength) {
+        if (!text) return 'No description available';
+        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+    }
+</script>
+{% endblock %}

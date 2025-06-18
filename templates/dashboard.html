@@ -1,0 +1,177 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>Dashboard</h1>
+        <div class="dashboard-actions">
+            <button id="refreshDashboardBtn" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button id="uploadLogBtn" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Upload Logs
+            </button>
+        </div>
+    </div>
+    
+    <!-- First row of stats -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Logs</h3>
+                <p id="totalLogsCount">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--danger-color);">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Threats Detected</h3>
+                <p id="threatsCount">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--info-color);">
+                <i class="fas fa-file-medical-alt"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Generated Reports</h3>
+                <p id="reportsCount">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--warning-color);">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Last Analysis</h3>
+                <p id="lastAnalysis">Never</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Second row of stats -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--info-color);">
+                <i class="fas fa-align-left"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Lines</h3>
+                <p id="totalLineCount">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--success-color);">
+                <i class="fas fa-database"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Size</h3>
+                <p id="totalSize">0 KB</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts section -->
+    <div class="dashboard-charts">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>Top Source IPs</h3>
+            </div>
+            <div class="chart-body">
+                <canvas id="sourceIpsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>Top Destination IPs</h3>
+            </div>
+            <div class="chart-body">
+                <canvas id="destIpsChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dashboard-charts">
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>Traffic by Protocol</h3>
+            </div>
+            <div class="chart-body">
+                <canvas id="protocolsChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-header">
+                <h3>Threats by Severity</h3>
+            </div>
+            <div class="chart-body">
+                <canvas id="severityChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent logs table -->
+    <div class="recent-logs-container">
+        <div class="section-header">
+            <h3>Recently Uploaded Logs</h3>
+            <a href="{{ url_for('logs') }}" class="btn btn-outline-primary btn-sm">View All</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Size</th>
+                        <th>Upload Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="recentLogsTable">
+                    <!-- Will be populated dynamically -->
+                    <tr><td colspan="4" class="text-center">Loading logs...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Log Modal -->
+<div class="modal fade" id="uploadLogModal" tabindex="-1" aria-labelledby="uploadLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadLogModalLabel">Upload Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadLogForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="logFiles" class="form-label">Select Log Files</label>
+                        <input class="form-control" type="file" id="logFiles" name="log_files" multiple required>
+                    </div>
+                    <div id="uploadStatus"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitUploadBtn">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Analysis Dashboard</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .form-group label {
+            color: #ffffff;
+        }
+        input[type="file"], select, button, input[type="text"] {
+            background-color: #333;
+            color: #ffffff;
+            border: 1px solid #555;
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+        }
+        button {
+            margin-top: 10px;
+        }
+        .result {
+            margin-top: 20px;
+        }
+        .preview-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #252525;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .report-preview {
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #2a2a2a;
+            border-radius: 4px;
+        }
+        .search-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #252525;
+            border-radius: 8px;
+        }
+        .search-result-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #2a2a2a;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .search-result-item.critical {
+            border-left-color: #dc3545;
+        }
+        .search-result-item.high {
+            border-left-color: #fd7e14;
+        }
+        .search-result-item.medium {
+            border-left-color: #ffc107;
+        }
+        .search-result-item.low {
+            border-left-color: #28a745;
+        }
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: white;
+            font-size: 0.8rem;
+        }
+        .badge-critical {
+            background-color: #dc3545;
+        }
+        .badge-high {
+            background-color: #fd7e14;
+        }
+        .badge-medium {
+            background-color: #ffc107;
+            color: black;
+        }
+        .badge-low {
+            background-color: #28a745;
+        }
+        .badge-info {
+            background-color: #17a2b8;
+        }
+        .tab-content {
+            padding: 20px 0;
+        }
+        .nav-tabs {
+            border-bottom-color: #444;
+        }
+        .nav-tabs .nav-link {
+            color: #aaa;
+            border: none;
+        }
+        .nav-tabs .nav-link.active {
+            color: white;
+            background-color: transparent;
+            border-bottom: 2px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">Log Analysis Dashboard</h1>
+        
+        <!-- Tabs for upload and search -->
+        <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="upload-tab" data-toggle="tab" href="#uploadSection" role="tab">
+                    <i class="fas fa-upload"></i> Upload & Analyze
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="search-tab" data-toggle="tab" href="#searchSection" role="tab">
+                    <i class="fas fa-search"></i> Search Reports
+                </a>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="dashboardTabsContent">
+            <!-- Upload and analyze section -->
+            <div class="tab-pane fade show active" id="uploadSection" role="tabpanel">
+                <form id="logForm">
+                    <div class="form-group">
+                        <label for="log_files">Upload Log Files:</label>
+                        <input type="file" id="log_files" name="log_files" multiple class="form-control-file">
+                    </div>
+                    <div class="form-group">
+                        <label for="search">Filter Results (optional):</label>
+                        <input type="text" id="search" name="search" placeholder="Enter keywords to filter analysis results..." class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="format">Select Report Format:</label>
+                        <select id="format" name="format" class="form-control">
+                            <option value="html">HTML</option>
+                            <option value="json">JSON</option>
+                            <option value="txt">Text</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="api_key">API Key (optional - uses .env if not provided):</label>
+                        <input type="password" id="api_key" name="api_key" placeholder="Enter your HuggingFace API key..." class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="discord_webhook">Discord Webhook URL (optional):</label>
+                        <input type="password" id="discord_webhook" name="discord_webhook" placeholder="Enter Discord webhook URL for notifications..." class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Analyze Logs
+                    </button>
+                </form>
+                <div class="result" id="result"></div>
+            </div>
+            
+            <!-- Search section -->
+            <div class="tab-pane fade" id="searchSection" role="tabpanel">
+                <div class="search-section">
+                    <h4>Search Existing Reports</h4>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <input type="text" id="searchQuery" placeholder="Search for keywords, IPs, threats..." class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <select id="severityFilter" class="form-control">
+                                    <option value="">All Severities</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="high">High</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="low">Low</option>
+                                    <option value="info">Info</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <button id="searchButton" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="searchResults"></div>
+
+                <!-- Add this in the search section tab of the dashboard -->
+
+                <div class="search-section mb-4">
+                    <h4>Direct Log Search</h4>
+                    <p class="text-muted">Search directly in log files without analyzing them</p>
+                    <form id="logSearchForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <input type="text" id="logSearchQuery" name="query" placeholder="Enter search terms..." class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <select id="logFilename" name="filename" class="form-control">
+                                        <option value="">All Log Files</option>
+                                        <!-- Log files will be populated dynamically -->
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <input type="password" id="logSearchApiKey" name="api_key" placeholder="API Key (optional)" class="form-control">
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-search"></i> Search Logs
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-2">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <select id="logLevel" name="log_level" class="form-control">
+                                        <option value="">Any Log Level</option>
+                                        <option value="ERROR">ERROR</option>
+                                        <option value="WARNING">WARNING</option>
+                                        <option value="INFO">INFO</option>
+                                        <option value="DEBUG">DEBUG</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <input type="number" id="contextLines" name="context_lines" placeholder="Context lines (0-10)" min="0" max="10" value="2" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group d-flex">
+                                    <div class="form-check mr-3">
+                                        <input type="checkbox" id="caseSensitive" name="case_sensitive" class="form-check-input">
+                                        <label class="form-check-label" for="caseSensitive">Case sensitive</label>
+                                    </div>
+                                    <div class="form-check mr-3">
+                                        <input type="checkbox" id="wholeWord" name="whole_word" class="form-check-input">
+                                        <label class="form-check-label" for="wholeWord">Whole words</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="checkbox" id="useRegex" name="regex" class="form-check-input">
+                                        <label class="form-check-label" for="useRegex">Use regex</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="logSearchResults"></div>
+            </div>
+        </div>
+        
+        <!-- Report preview section -->
+        <div class="preview-container" id="previewContainer" style="display:none;">
+            <h3>Report Preview</h3>
+            <div class="d-flex justify-content-between mb-3">
+                <div>
+                    <span id="previewTitle" class="text-muted"></span>
+                </div>
+                <div>
+                    <a id="downloadLink" href="#" class="btn btn-sm btn-primary mr-2">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                    <button id="closePreview" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+            <div class="report-preview" id="reportPreview"></div>
+        </div>
+    </div>
+
+    <script>
+        // Form submission for analysis
+        document.getElementById('logForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Hide preview if visible
+            document.getElementById('previewContainer').style.display = 'none';
+            
+            // Show loading state
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Analyzing logs, please wait...</p>';
+            
+            var formData = new FormData(this);
+            fetch('/analyze', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultDiv.innerHTML = `<div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> Error: ${data.error}</div>`;
+                } else {
+                    // Show success message with preview button
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i> Analysis complete! Found ${data.total_threats} potential threats.
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button class="btn btn-info preview-report" data-path="${data.output_file}">
+                                <i class="fas fa-eye"></i> Preview Report
+                            </button>
+                            <a href="${data.output_file}" download class="btn btn-primary">
+                                <i class="fas fa-download"></i> Download Report
+                            </a>
+                        </div>
+                    `;
+                    
+                    // Add event listener to preview button
+                    document.querySelectorAll('.preview-report').forEach(button => {
+                        button.addEventListener('click', function() {
+                            const reportPath = this.getAttribute('data-path');
+                            loadReportPreview(reportPath);
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<div class="alert alert-danger">Error processing request. Check console for details.</div>`;
+            });
+        });
+
+        // Search button click handler
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const query = document.getElementById('searchQuery').value;
+            const severity = document.getElementById('severityFilter').value;
+            
+            if (!query && !severity) {
+                alert('Please enter search terms to find in log files');
+                return;
+            }
+            
+            // Show loading state
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Searching logs and reports...</p>';
+            
+            // Create form data for the search request
+            const formData = new FormData();
+            formData.append('query', query);
+            formData.append('severity', severity);
+            
+            // Log the search activity
+            logSearchActivity(query, severity);
+            
+            fetch('/search_logs', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultsDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                
+                if (data.total === 0) {
+                    resultsDiv.innerHTML = '<div class="alert alert-info">No matching results found.</div>';
+                    return;
+                }
+                
+                // Display search results
+                let resultsHTML = `<h5>Found ${data.total} matching results</h5>`;
+                
+                data.results.forEach(result => {
+                    // Determine if this is a log file entry or a report threat
+                    const isLogEntry = result.source_type === 'log';
+                    const reportFile = result.report_file ? result.report_file.split('/').pop() : 'N/A';
+                    const fileName = result.file ? result.file.split(/[\/\\]/).pop() : 'Unknown';
+                    
+                    // Different styling for log entries vs threats
+                    const itemClass = isLogEntry ? 'info' : result.severity;
+                    
+                    resultsHTML += `
+                        <div class="search-result-item ${itemClass}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5>
+                                    ${isLogEntry ? 'Log Entry' : result.rule_name} 
+                                    <span class="badge badge-${isLogEntry ? 'info' : result.severity}">
+                                        ${isLogEntry ? 'LOG' : result.severity.toUpperCase()}
+                                    </span>
+                                </h5>
+                                <div>
+                                    <button class="btn btn-sm btn-info ${isLogEntry ? 'view-log-file' : 'view-threat-details'}" 
+                                            data-file="${result.file}" 
+                                            data-threat='${isLogEntry ? '' : JSON.stringify(result).replace(/'/g, "&#39;")}'>
+                                        <i class="fas fa-eye"></i> View ${isLogEntry ? 'Log' : 'Details'}
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <small class="text-muted">
+                                    File: ${fileName} • Line: ${result.line_num}
+                                    ${isLogEntry ? '' : ` • Report: ${reportFile}`}
+                                </small>
+                            </div>
+                            <div class="mt-2">
+                                <code>${result.matched && result.matched.length > 200 ? 
+                                       result.matched.substring(0, 200) + '...' : 
+                                       result.matched || 'No content'}</code>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = resultsHTML;
+                
+                // Add event listeners to view details buttons for threats
+                document.querySelectorAll('.view-threat-details').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const threatData = JSON.parse(this.getAttribute('data-threat'));
+                        showThreatPreview(threatData);
+                    });
+                });
+                
+                // Add event listeners for log file previews
+                document.querySelectorAll('.view-log-file').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const filePath = this.getAttribute('data-file');
+                        const fileName = filePath.split(/[\/\\]/).pop();
+                        showLogFilePreview(fileName);
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = '<div class="alert alert-danger">Error processing search. Check console for details.</div>';
+            });
+        });
+
+        // Load and display a report preview
+        function loadReportPreview(reportPath) {
+            fetch(reportPath)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(content => {
+                    // Set up the preview container
+                    document.getElementById('previewContainer').style.display = 'block';
+                    document.getElementById('downloadLink').href = reportPath;
+                    document.getElementById('previewTitle').textContent = reportPath.split('/').pop();
+                    
+                    const previewDiv = document.getElementById('reportPreview');
+                    
+                    // Always display as plain text
+                    previewDiv.innerHTML = `<pre style="color: #e6e6e6; white-space: pre-wrap;">${escapeHtml(content)}</pre>`;
+                    
+                    // Scroll to the preview
+                    document.getElementById('previewContainer').scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Error loading preview:', error);
+                    document.getElementById('reportPreview').innerHTML = `<div class="alert alert-danger">Error loading preview: ${error.message}</div>`;
+                });
+        }
+        
+        // Escape HTML to prevent XSS when showing raw content
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Show preview of a log file
+        function showLogFilePreview(fileName) {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.style.display = 'block';
+            
+            const previewTitle = document.getElementById('previewTitle');
+            previewTitle.textContent = `Log File: ${fileName}`;
+            
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = `/uploads/${fileName}`;
+            downloadLink.style.display = 'inline-block';
+            
+            const previewDiv = document.getElementById('reportPreview');
+            previewDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Loading log file...</p>';
+            
+            fetch(`/preview_log/${fileName}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(content => {
+                    // Always display as plain text
+                    previewDiv.innerHTML = `<pre style="color: #e6e6e6; white-space: pre-wrap;">${escapeHtml(content)}</pre>`;
+                    
+                    // Scroll to the preview
+                    previewContainer.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Error loading log file:', error);
+                    previewDiv.innerHTML = `<div class="alert alert-danger">Error loading log file: ${error.message}</div>`;
+                });
+        }
+
+        // Show preview of a specific threat
+        function showThreatPreview(threat) {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.style.display = 'block';
+            
+            const previewTitle = document.getElementById('previewTitle');
+            previewTitle.textContent = `Threat: ${threat.rule_name}`;
+            
+            const downloadLink = document.getElementById('downloadLink');
+            if (threat.report_file) {
+                downloadLink.href = threat.report_file;
+                downloadLink.style.display = 'inline-block';
+            } else {
+                downloadLink.style.display = 'none';
+            }
+            
+            const previewDiv = document.getElementById('reportPreview');
+            
+            // Format the threat details for display
+            previewDiv.innerHTML = `
+                <div class="alert alert-${threat.severity}">
+                    <strong>${threat.rule_id}: ${threat.rule_name}</strong>
+                </div>
+                <div class="mb-3">
+                    <h6>Description</h6>
+                    <p>${truncateText(threat.description, 1000)}</p>
+                </div>
+                <div class="mb-3">
+                    <h6>Remediation</h6>
+                    <p>${threat.remediation || 'No remediation provided'}</p>
+                </div>
+                <div class="mb-3">
+                    <h6>Affected Code</h6>
+                    <pre class="bg-dark text-light p-3 rounded">${threat.line || 'N/A'}</pre>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>File Details</h6>
+                        <table class="table table-sm table-dark">
+                            <tr>
+                                <td>File:</td>
+                                <td>${threat.file || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td>Line #:</td>
+                                <td>${threat.line_num || 'N/A'}</td>
+                            </tr>
+                            <tr>
+                                <td>Detection Time:</td>
+                                <td>${new Date(threat.detection_time || threat.timestamp || Date.now()).toLocaleString()}</td>
+                            </tr>
+                        </table>
+                    </div>
+            `;
+            
+            // Add file hash information if available
+            if (threat.file_hash) {
+                previewDiv.innerHTML += `
+                    <div class="col-md-6">
+                        <h6>File Hash</h6>
+                        <table class="table table-sm table-dark">
+                            <tr>
+                                <td>MD5:</td>
+                                <td><code>${threat.file_hash.md5}</code></td>
+                            </tr>
+                            <tr>
+                                <td>SHA256:</td>
+                                <td><code>${threat.file_hash.sha256}</code></td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            previewDiv.innerHTML += '</div>';
+            
+            // Scroll to the preview
+            previewContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Close preview button handler
+        document.getElementById('closePreview').addEventListener('click', function() {
+            document.getElementById('previewContainer').style.display = 'none';
+        });
+
+        // Truncate long text with ellipsis
+        function truncateText(text, maxLength) {
+            if (!text) return 'No description available';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        // Initialize tabs if they're clicked from URL
+        $(document).ready(function() {
+            // Check for hash in URL to activate appropriate tab
+            if (window.location.hash === '#searchSection') {
+                $('#dashboardTabs a[href="#searchSection"]').tab('show');
+                
+                // Check if there's a search query in the session and use it
+                const urlParams = new URLSearchParams(window.location.search);
+                const queryParam = urlParams.get('query');
+                
+                // First check URL parameters, then session storage
+                let searchQuery = queryParam || sessionStorage.getItem('globalSearchQuery');
+                
+                if (searchQuery) {
+                    // Populate the search field
+                    document.getElementById('searchQuery').value = searchQuery;
+                    // Trigger search automatically
+                    setTimeout(() => {
+                        document.getElementById('searchButton').click();
+                        // Scroll to search results
+                        setTimeout(() => {
+                            document.getElementById('searchResults').scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start'
+                            });
+                        }, 800);
+                    }, 500);
+                }
+                
+                // Clear from session storage after use
+                sessionStorage.removeItem('globalSearchQuery');
+            }
+        });
+
+        // Load available log files when the search tab is shown
+        $('#dashboardTabs a[href="#searchSection"]').on('shown.bs.tab', function (e) {
+            loadLogFiles();
+        });
+
+        // Load log files into the dropdown
+        function loadLogFiles() {
+            fetch('/list_log_files')
+                .then(response => response.json())
+                .then(data => {
+                    const logFilesSelect = document.getElementById('logFilename');
+                    // Clear existing options except the first one
+                    while (logFilesSelect.options.length > 1) {
+                        logFilesSelect.remove(1);
+                    }
+                    
+                    // Add new options
+                    data.log_files.forEach(file => {
+                        const option = document.createElement('option');
+                        option.value = file.filename;
+                        option.textContent = `${file.filename} (${formatFileSize(file.size)})`;
+                        logFilesSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error loading log files:', error));
+        }
+
+        // Format file size in KB, MB etc.
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        // Handle log search form submission
+        document.getElementById('logSearchForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const resultsDiv = document.getElementById('logSearchResults');
+            resultsDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Searching logs...</p>';
+            
+            const formData = new FormData(this);
+            
+            fetch('/search_logs_only', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultsDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    return;
+                }
+                
+                if (data.total === 0) {
+                    resultsDiv.innerHTML = '<div class="alert alert-info">No matching results found.</div>';
+                    return;
+                }
+                
+                // Display search results
+                let resultsHTML = `<h5>Found ${data.total} matching results in ${data.files_searched} files</h5>`;
+                
+                data.results.forEach(result => {
+                    resultsHTML += `
+                        <div class="search-result-item info">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5>
+                                    ${result.file.split(/[\/\\]/).pop()} 
+                                    <span class="badge badge-info">LOG</span>
+                                </h5>
+                                <div>
+                                    <button class="btn btn-sm btn-info view-log-context" 
+                                            data-line="${result.line_num}"
+                                            data-file="${result.file}">
+                                        <i class="fas fa-eye"></i> View Context
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <small class="text-muted">
+                                    Line: ${result.line_num}
+                                    ${result.timestamp ? ` • Time: ${result.timestamp}` : ''}
+                                </small>
+                            </div>
+                            <div class="mt-2">
+                                <code>${result.matched}</code>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = resultsHTML;
+                
+                // Add event listeners for context view buttons
+                document.querySelectorAll('.view-log-context').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const filePath = this.getAttribute('data-file');
+                        const fileName = filePath.split(/[\/\\]/).pop();
+                        const lineNum = parseInt(this.getAttribute('data-line'), 10);
+                        showLogContextPreview(fileName, lineNum);
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = '<div class="alert alert-danger">Error processing search. Check console for details.</div>';
+            });
+        });
+
+        // Function to show log context in the preview
+        function showLogContextPreview(fileName, lineNum) {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.style.display = 'block';
+            
+            const previewTitle = document.getElementById('previewTitle');
+            previewTitle.textContent = `Log File: ${fileName} (Line ${lineNum})`;
+            
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = `/uploads/${fileName}`;
+            downloadLink.style.display = 'inline-block';
+            
+            const previewDiv = document.getElementById('reportPreview');
+            previewDiv.innerHTML = '<p><i class="fas fa-spinner fa-spin"></i> Loading log context...</p>';
+            
+            fetch(`/preview_log/${fileName}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(content => {
+                    // Display the log with the target line highlighted
+                    const lines = content.split('\n');
+                    let startLine = Math.max(0, lineNum - 10);
+                    let endLine = Math.min(lines.length, lineNum + 10);
+                    
+                    let displayContent = '';
+                    for (let i = startLine; i < endLine; i++) {
+                        if (i + 1 === lineNum) {
+                            displayContent += `<span style="background-color: #ffff00; color: black;">${i + 1}: ${escapeHtml(lines[i])}</span>\n`;
+                        } else {
+                            displayContent += `${i + 1}: ${escapeHtml(lines[i])}\n`;
+                        }
+                    }
+                    
+                    previewDiv.innerHTML = `<pre style="color: #e6e6e6; white-space: pre-wrap;">${displayContent}</pre>`;
+                    
+                    // Scroll to the preview
+                    previewContainer.scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Error loading log file:', error);
+                    previewDiv.innerHTML = `<div class="alert alert-danger">Error loading log file: ${error.message}</div>`;
+                });
+        }
+
+        // Function to log search activity
+        function logSearchActivity(query, severity) {
+            const activity = {
+                activity_type: 'search',
+                details: {
+                    query: query,
+                    severity: severity || 'all',
+                    source: 'dashboard'
+                }
+            };
+            
+            fetch('/log_activity', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(activity)
+            }).catch(err => console.error('Error logging activity:', err));
+        }
+    </script>
+</body>
+</html>

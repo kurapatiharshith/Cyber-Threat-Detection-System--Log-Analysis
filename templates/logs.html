@@ -1,0 +1,119 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="logs-container">
+    <div class="logs-header">
+        <h1>Logs</h1>
+        <div class="logs-actions">
+            <button id="uploadLogBtn" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Upload Logs
+            </button>
+        </div>
+    </div>
+    
+    <div class="log-content-container">
+        <div class="log-selector">
+            <h3>Available Logs</h3>
+            <div class="log-search">
+                <input type="text" id="logSearch" class="custom-input" placeholder="Search logs...">
+                <i class="fas fa-search"></i>
+            </div>
+            <ul id="logsList" class="logs-list">
+                <!-- Will be populated dynamically -->
+            </ul>
+        </div>
+        
+        <div class="log-viewer">
+            <div class="log-viewer-header">
+                <div class="log-title">
+                    <h3 id="currentLogName">No log selected</h3>
+                    <span id="logStats" class="log-stats"></span>
+                </div>
+                <div class="log-controls">
+                    <div class="log-search-container">
+                        <input type="text" id="logContentSearch" class="custom-input" placeholder="Search in log...">
+                        <button id="prevMatchBtn" class="btn btn-sm btn-outline" title="Previous match"><i class="fas fa-chevron-up"></i></button>
+                        <button id="nextMatchBtn" class="btn btn-sm btn-outline" title="Next match"><i class="fas fa-chevron-down"></i></button>
+                        <span id="searchStats"></span>
+                    </div>
+                    <button id="analyzeLogBtn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-search"></i> Analyze
+                    </button>
+                </div>
+            </div>
+            
+            <div class="log-content-wrapper">
+                <pre id="logContent" class="log-content"></pre>
+                <div id="logPlaceholder" class="log-placeholder">
+                    <i class="fas fa-file-alt"></i>
+                    <p>Select a log from the list to view its contents</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Log Modal -->
+<div class="modal fade" id="uploadLogModal" tabindex="-1" aria-labelledby="uploadLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadLogModalLabel">Upload Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadLogForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="logFiles" class="form-label">Select Log Files</label>
+                        <input class="form-control custom-input" type="file" id="logFiles" name="log_files" multiple required>
+                    </div>
+                    <div id="uploadStatus"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitUploadBtn">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Modal -->
+<div class="modal fade" id="analysisModal" tabindex="-1" aria-labelledby="analysisModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="analysisModalLabel">Log Analysis</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="analysisForm">
+                    <div class="mb-3">
+                        <label for="formatSelect" class="form-label">Report Format</label>
+                        <select class="form-select custom-select" id="formatSelect" name="format">
+                            <option value="html">HTML</option>
+                            <option value="json">JSON</option>
+                            <option value="txt">Text</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="searchFilter" class="form-label">Filter Results (Optional)</label>
+                        <input type="text" class="form-control custom-input" id="searchFilter" name="search" placeholder="Enter keywords to filter analysis results">
+                    </div>
+                    
+                    <div id="analysisStatus"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="startAnalysisBtn">Analyze</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/logs.js') }}"></script>
+{% endblock %}

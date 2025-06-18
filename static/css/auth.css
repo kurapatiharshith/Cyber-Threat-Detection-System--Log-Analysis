@@ -1,0 +1,211 @@
+/* Login and authentication styles */
+
+/* Theme toggle button for login page */
+.theme-toggle-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+}
+
+.theme-toggle-button {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    font-size: 1.25rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.theme-toggle-button:hover {
+    background-color: rgba(0,0,0,0.1);
+    color: #495057;
+}
+
+/* Light mode styles (default) */
+:root {
+    --auth-bg-color: #f5f8fa;
+    --auth-card-bg: #ffffff;
+    --auth-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    --auth-text-color: #2c3e50;
+    --auth-subtitle-color: #7f8c8d;
+    --auth-label-color: #34495e;
+    --auth-input-bg: #ffffff;
+    --auth-input-border: #ced4da;
+    --auth-input-text: #333333;
+    --auth-footer-color: #95a5a6;
+    --auth-btn-primary-bg: #0d6efd;
+    --auth-btn-primary-hover: #0b5ed7;
+    --auth-input-group-bg: #f8f9fa;
+}
+
+/* Dark mode styles */
+html[data-theme="dark"] {
+    --auth-bg-color: #1a1d21;
+    --auth-card-bg: #282c34;
+    --auth-card-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    --auth-text-color: #e2e8f0;
+    --auth-subtitle-color: #a0aec0;
+    --auth-label-color: #cbd5e0;
+    --auth-input-bg: #1e2227;
+    --auth-input-border: #4a5568;
+    --auth-input-text: #e2e8f0;
+    --auth-footer-color: #a0aec0;
+    --auth-btn-primary-bg: #3182ce;
+    --auth-btn-primary-hover: #2b6cb0;
+    --auth-input-group-bg: #2d3748;
+}
+
+/* Apply theme variables */
+.auth-wrapper {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--auth-bg-color);
+    padding: 1rem;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+}
+
+.auth-card {
+    background: var(--auth-card-bg);
+    border-radius: 12px;
+    box-shadow: var(--auth-card-shadow);
+    overflow: hidden;
+    padding: 2rem;
+    transition: all 0.3s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.auth-logo img {
+    height: 48px;
+    width: auto;
+}
+
+.logo-icon {
+    width: 24px !important;
+    height: 24px !important;
+    margin-left: 8px;
+}
+
+.auth-title {
+    font-size: 1.75rem;
+    color: var(--auth-text-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.auth-subtitle {
+    color: var(--auth-subtitle-color);
+    margin-bottom: 0.5rem;
+}
+
+.form-group .form-label {
+    font-weight: 500;
+    color: var(--auth-label-color);
+    margin-bottom: 0.5rem;
+}
+
+.input-group {
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.input-group:focus-within {
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+.input-group-text {
+    background-color: var(--auth-input-group-bg);
+    border-color: var(--auth-input-border);
+    color: var(--auth-subtitle-color);
+}
+
+.form-control {
+    border-color: var(--auth-input-border);
+    padding: 0.6rem 0.75rem;
+    font-size: 0.95rem;
+    background-color: var(--auth-input-bg);
+    color: var(--auth-input-text);
+}
+
+.form-control:focus {
+    box-shadow: none;
+    border-color: #80bdff;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary {
+    background-color: var(--auth-btn-primary-bg);
+    border-color: var(--auth-btn-primary-bg);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--auth-btn-primary-hover);
+    border-color: var(--auth-btn-primary-hover);
+    transform: translateY(-1px);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    color: var(--auth-footer-color);
+    font-size: 0.85rem;
+}
+
+.alert {
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.password-toggle {
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    background-color: #e9ecef;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+    .auth-card {
+        padding: 1.5rem;
+    }
+    
+    .auth-title {
+        font-size: 1.5rem;
+    }
+}
+
+.form-check-label {
+    color: var(--auth-label-color);
+}
