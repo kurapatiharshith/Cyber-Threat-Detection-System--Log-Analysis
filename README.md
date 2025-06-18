@@ -27,7 +27,7 @@ A comprehensive web application for analyzing log files, detecting security thre
 1. Clone the repository:
 
 ```bash
-git https://github.com/VASVIjs124/Cyber-Threat-Detection-System--Log-Analysis-.git
+git https://github.com/kurapatiharshith/Cyber-Threat-Detection-System--Log-Analysis.git
 cd log-analyzer
 ```
 
